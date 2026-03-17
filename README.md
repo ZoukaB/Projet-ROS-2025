@@ -140,7 +140,7 @@ The robot follows a state machine:
 
 ### Prerequisites
 
-- ROS2 Humble (or compatible distribution)
+- ROS2 Jazzy (or compatible distribution)
 - TurtleBot3 packages
 - `ros_gz_sim` and the `projet2025` simulation package
 - OpenCV (`cv2`), `cv_bridge`, `numpy`
