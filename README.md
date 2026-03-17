@@ -5,11 +5,11 @@
 
 ---
 
-A ROS2 package implementing four autonomous robot behaviors on a **TurtleBot3 Burger** simulated in Gazebo and tested on a real life obstacle course. Each challenge is an independent node that can be launched and tested separately. 
+A ROS2 package implementing four autonomous robot behaviors on a **TurtleBot3 Burger** simulated in Gazebo and tested on a real life obstacle course. Each challenge is an independent node that can be launched and tested separately.
 
 All code were run using a virtual machine provided by the university with all the necessary system requirements (Ubuntu 22.04 LTS with ROS2 Jazzy).
 
-An explaination of our work with visual examples can be found in ROS.pdf.
+An explanation of our work with visual examples can be found in `ROS.pdf`.
 
 ---
 
@@ -29,7 +29,7 @@ projet_ros_2025/
 ├── projet_ros_2025/
 │   ├── __init__.py
 │   ├── teleop_camera.py        # Helper script to teleoperate robot back to start position
-│   ├── vision.py               # Helper script to activate camera with filters 
+│   ├── vision.py               # Helper script to activate camera with filters
 │   ├── line_following.py       # Challenge 1: Line following
 │   ├── object_avoidance.py     # Challenge 2: Obstacle avoidance with line following
 │   ├── corridor.py             # Challenge 3: Corridor navigation
@@ -58,7 +58,7 @@ The robot follows a two-color track (red line on the right, green line on the le
 - Computes the centroid of each line and steers the robot to keep them on either side.
 - Handles edge cases (only one line visible) by turning in the appropriate direction.
 - Detects a **blue stop zone** to halt the robot at the end of the course.
-- An **emergency stop** is triggered via LIDAR if an obstacle is detected closer than 30 cm.
+- Triggers an **emergency stop** via LIDAR if an obstacle is detected closer than 30 cm.
 - Supports a `roundabout_direction` parameter (`left` or `right`) to handle roundabout sections.
 
 **Topics used:**
@@ -76,10 +76,10 @@ The robot follows a two-color track (red line on the right, green line on the le
 The robot follows the same red/green line track while dynamically avoiding obstacles detected by the LIDAR.
 
 **How it works:**
-- Uses LIDAR to monitor the front-left and front-right sectors. If any obstacle is within 25 cm, the robot stops line following and steers away.
-- Camera-based line following uses **tangent vectors** computed via `cv2.fitLine` to estimate the local direction of each line and drive proportionally.
-- When lines are very close together (near an obstacle or narrow passage), the robot turns based on a configurable `turn_direction` parameter.
-- The camera processing runs at a throttled 10 FPS to reduce load.
+- Monitors the front-left and front-right LIDAR sectors and overrides line following to steer away if any obstacle is detected within 25 cm.
+- Estimates the local direction of each line using **tangent vectors** computed via `cv2.fitLine`, and drives at a speed proportional to how straight the road ahead is.
+- Turns in a configurable direction (`turn_direction` parameter) when both lines are detected very close together, indicating a narrow passage or obstacle.
+- Throttles camera processing to 10 FPS to reduce computational load.
 
 **Topics used:**
 - `/camera/image_raw/compressed` (subscriber)
@@ -96,10 +96,10 @@ The robot follows the same red/green line track while dynamically avoiding obsta
 The robot navigates a corridor using LIDAR-based PID wall-following, then transitions to visual line following upon detecting a colored marker.
 
 **How it works:**
-1. **LIDAR PID phase (`lidar_pid` state):** The robot maintains a constant distance (setpoint: 20 cm) from the right wall using a proportional controller on the nearest LIDAR readings in the NE sector.
-2. **Transition:** When a **blue line** is detected in the lower part of the camera frame, the robot switches to the visual phase.
-3. **Green line following phase (`green_approach` state):** The robot follows a green line on the ground using centroid-based visual steering.
-4. **Final stop:** A second blue zone detected in the center-bottom of the frame triggers a full stop after a minimum number of frames has elapsed.
+- Maintains a constant distance (setpoint: 20 cm) from the right wall using a proportional controller on the nearest LIDAR readings in the NE sector (`lidar_pid` state).
+- Transitions to visual mode when a **blue line** is detected in the lower part of the camera frame.
+- Follows a green line on the ground using centroid-based visual steering (`green_approach` state).
+- Triggers a full stop when a second **blue zone** is detected in the center-bottom of the frame, after a minimum number of frames has elapsed to avoid false positives (`stop` state).
 
 **Topics used:**
 - `/scan` (subscriber)
@@ -116,19 +116,12 @@ The robot navigates a corridor using LIDAR-based PID wall-following, then transi
 The robot autonomously finds a yellow ball, positions itself behind it, then drives toward a red goal to score.
 
 **How it works:**
-The robot follows a state machine:
-
-| State | Description |
-|---|---|
-| `align_ball` | Rotates to center the yellow ball in the camera frame |
-| `drive_to_ball` | Drives straight toward the ball until it disappears (robot is on top of it) |
-| `search_goal` | Rotates to find the red goal posts |
-| `align_goal` | Centers the midpoint between the two red posts |
-| `drive_to_goal` | Drives forward to push the ball into the goal |
-
-- Ball detection uses a yellow HSV mask; goal detection uses a dual-range red HSV mask.
-- Morphological cleaning (`MORPH_OPEN` + `MORPH_CLOSE`) reduces noise in both masks.
-- A debug overlay window shows detected objects and current state.
+- Searches for the yellow ball by rotating in place, then aligns with it by centering it in the camera frame (`align_ball` state).
+- Drives straight toward the ball until it disappears from the frame, indicating the robot is on top of it (`drive_to_ball` state).
+- Rotates to search for the red goal posts, identified via a dual-range HSV red mask (`search_goal` state).
+- Aligns with the goal by centering the midpoint between the two detected red posts (`align_goal` state).
+- Drives forward to push the ball into the goal (`drive_to_goal` state).
+- Applies morphological cleaning (`MORPH_OPEN` + `MORPH_CLOSE`) to both color masks to reduce noise.
 
 **Topics used:**
 - `/camera/image_raw/compressed` (subscriber)
@@ -140,7 +133,7 @@ The robot follows a state machine:
 
 ### Prerequisites
 
-- ROS2 Jazzy (or compatible distribution)
+- ROS2 Humble (or compatible distribution)
 - TurtleBot3 packages
 - `ros_gz_sim` and the `projet2025` simulation package
 - OpenCV (`cv2`), `cv_bridge`, `numpy`
@@ -201,3 +194,9 @@ All nodes display OpenCV debug windows during execution:
 Windows are closed automatically on node shutdown.
 
 ---
+
+## Notes
+
+- All nodes publish velocity commands to `/cmd_vel` and are designed to run one at a time.
+- The `spawn_launch.py` file contains predefined spawn positions for all four challenges — simply update the variable references (`challenge_1` through `challenge_4`) to match the active challenge.
+- `teleop_camera` and `vision` are helper scripts for manual control and camera debugging; they are not part of the autonomous challenge pipeline.
